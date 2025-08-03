@@ -23,17 +23,19 @@ class BlenderCommandHandler(BaseHTTPRequestHandler):
             self.wfile.write(b'Missing command')
             return
         try:
+            # Optionally set MCP properties from incoming JSON
+            props = bpy.context.scene.mcp_chat_props
+            for field in ["model", "scene_detail", "prompt_quality", "poly_count"]:
+                if field in data:
+                    setattr(props, field, data[field])
             # Execute the Python command in Blender's context
-            local_vars = {}
-            exec(command, {'bpy': bpy}, local_vars)
-            result = local_vars.get('result', 'OK')
-            self.send_response(200)
-            self.end_headers()
-            self.wfile.write(json.dumps({'result': result}).encode('utf-8'))
+            exec(command, {'bpy': bpy, '__builtins__': __builtins__})
+            result = {'status': 'success'}
         except Exception as e:
-            self.send_response(500)
-            self.end_headers()
-            self.wfile.write(json.dumps({'error': str(e)}).encode('utf-8'))
+            result = {'status': 'error', 'error': str(e)}
+        self.send_response(200)
+        self.end_headers()
+        self.wfile.write(json.dumps({'result': result}).encode('utf-8'))
 
 
 def start_blender_http_server(port=8081):

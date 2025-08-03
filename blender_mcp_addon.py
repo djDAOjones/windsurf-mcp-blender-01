@@ -26,25 +26,62 @@ class MCPChatEntry(bpy.types.PropertyGroup):
 
 class MCPChatProperties(bpy.types.PropertyGroup):
     model: bpy.props.EnumProperty(
-        name="Model",
-        description="Select the AI model to use",
+        name="AI Model",
+        description="Choose which AI model to use",
         items=[
-            ("claude-opus", "Claude Opus", "Anthropic Claude Opus"),
-            ("gpt-4o", "ChatGPT (GPT-4o)", "OpenAI GPT-4o")
+            ("claude", "Claude", "Anthropic Claude"),
+            ("gpt", "GPT-4o", "OpenAI GPT-4o")
         ],
-        default="claude-opus"
+        default="gpt"
+    )
+    bypass_prompt_quality: bpy.props.BoolProperty(
+        name="Bypass",
+        description="Bypass prompt quality (let AI decide)",
+        default=True
+    )
+    bypass_poly_count: bpy.props.BoolProperty(
+        name="Bypass",
+        description="Bypass poly count (let AI decide)",
+        default=True
     )
     scene_detail: bpy.props.EnumProperty(
         name="Scene Detail",
         description="How much scene info to send to AI",
         items=[
-            ("summary", "Scene Summary", "Scene/frame and object counts"),
-            ("objects", "Objects Basic", "Names/types of all objects"),
-            ("transforms", "Objects + Transforms", "Names/types and transforms"),
-            ("detailed", "Detailed", "All above plus key properties")
+            ("summary", "Summary", "Scene summary only"),
+            ("objects", "Objects", "Objects only"),
+            ("transforms", "Objects + Transforms", "Objects and transforms"),
+            ("detailed", "Detailed", "All object properties")
         ],
-        default="objects"
+        default="summary"
     )
+    prompt_quality: bpy.props.EnumProperty(
+        name="Prompt Quality",
+        description="How complex/detailed the AI prompt should be",
+        items=[
+            ("bypass", "Bypass", "Let AI decide prompt quality"),
+            ("1", "Minimal", "Minimal: 1 short sentence, single action, specific"),
+            ("2", "Basic", "Basic: 1-2 sentences, a couple actions, specific"),
+            ("3", "Moderate", "Moderate: 1 paragraph, 2-3 actions, some open-endedness"),
+            ("4", "Detailed", "Detailed: multi-paragraph, several tasks, moderately open-ended"),
+            ("5", "Maximal", "Maximal: long, multi-step, highly open-ended, full script/plan")
+        ],
+        default="bypass"
+    )
+    poly_count: bpy.props.EnumProperty(
+        name="Poly Count",
+        description="Approximate mesh density for generated models",
+        items=[
+            ("bypass", "Bypass", "Let AI decide poly count"),
+            ("1", "Ultra Low", "Icon/blockout (~100–500 polygons)"),
+            ("2", "Low", "Toy/prototype (~500–2,000 polygons)"),
+            ("3", "Medium", "Game asset (~2,000–10,000 polygons)"),
+            ("4", "High", "Cinematic (~10,000–50,000 polygons)"),
+            ("5", "Ultra High", "Hero/film asset (>50,000 polygons)")
+        ],
+        default="bypass"
+    )
+
     chat_input: bpy.props.StringProperty(name="Prompt", default="what can you see in Blender?")
     code_snippet: bpy.props.StringProperty(name="Code Snippet")
     chat_history: bpy.props.CollectionProperty(type=MCPChatEntry)
@@ -204,52 +241,26 @@ class MCP_PT_ChatPanel3DView(bpy.types.Panel):
     def draw(self, context):
         layout = self.layout
         props = context.scene.mcp_chat_props
-        layout.label(text="Tip: More space in Text Editor", icon='INFO')
-        layout.prop(props, "model", text="Model")
-        layout.prop(props, "scene_detail", text="Scene Detail")
-        layout.prop(props, "chat_input", text="Prompt")
-        layout.operator("mcp.send_prompt", text="Send to AI")
+        row = layout.row()
+        row.label(text="Model")
+        row.prop(props, "model", text="", expand=False)
+        row = layout.row()
+        row.label(text="Scene Detail")
+        row.prop(props, "scene_detail", text="", expand=False)
+        row = layout.row()
+        row.label(text="Prompt Quality")
+        row.prop(props, "prompt_quality", text="", expand=False)
+        row = layout.row()
+        row.label(text="Poly Count")
+        row.prop(props, "poly_count", text="", expand=False)
 
 
-        layout.label(text="Chat History (newest first):")
-        for i, entry in reversed(list(enumerate(props.chat_history))):
-            box = layout.box()
-            box.label(text=f"Prompt: {entry.prompt}")
-            box.label(text="Response:")
-            box.prop(entry, "response", text="", emboss=True, icon='TEXT')
-            box.operator("mcp.copy_response", text="Copy Response").index = i
+
         if props.code_snippet:
             layout.label(text="Suggested Code:")
             layout.prop(props, "code_snippet", text="")
             layout.operator("mcp.run_code", text="Run AI Code")
 
-class MCP_PT_ChatPanelTextEditor(bpy.types.Panel):
-    bl_label = "MCP AI Chat"
-    bl_idname = "MCP_PT_ChatPanelTextEditor"
-    bl_space_type = 'TEXT_EDITOR'
-    bl_region_type = 'UI'
-    bl_category = 'MCP AI Chat'
-
-    def draw(self, context):
-        layout = self.layout
-        props = context.scene.mcp_chat_props
-        layout.prop(props, "model", text="Model")
-        layout.prop(props, "scene_detail", text="Scene Detail")
-        layout.prop(props, "chat_input", text="Prompt")
-        layout.operator("mcp.send_prompt", text="Send to AI")
-
-
-        layout.label(text="Chat History (newest first):")
-        for i, entry in reversed(list(enumerate(props.chat_history))):
-            box = layout.box()
-            box.label(text=f"Prompt: {entry.prompt}")
-            box.label(text="Response:")
-            box.prop(entry, "response", text="", emboss=True, icon='TEXT')
-            box.operator("mcp.copy_response", text="Copy Response").index = i
-        if props.code_snippet:
-            layout.label(text="Suggested Code:")
-            layout.prop(props, "code_snippet", text="")
-            layout.operator("mcp.run_code", text="Run AI Code")
 
 classes = [
     MCPChatEntry,
@@ -258,7 +269,6 @@ classes = [
     MCP_OT_RunCode,
     MCP_OT_CopyResponse,
     MCP_PT_ChatPanel3DView,
-    MCP_PT_ChatPanelTextEditor,
 ]
 
 def register():
