@@ -265,6 +265,14 @@ def register():
     for cls in classes:
         bpy.utils.register_class(cls)
     bpy.types.Scene.mcp_chat_props = bpy.props.PointerProperty(type=MCPChatProperties)
+    # Start HTTP server for remote control (only once)
+    try:
+        import blender_http_server
+        if not hasattr(register, "_http_server_started"):
+            blender_http_server.start_blender_http_server(port=8081)
+            register._http_server_started = True
+    except Exception as e:
+        print(f"[MCP Addon] Failed to start HTTP server: {e}")
 
 def unregister():
     for cls in reversed(classes):

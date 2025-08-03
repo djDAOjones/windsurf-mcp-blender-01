@@ -17,6 +17,19 @@ app = FastAPI(title="MCP Server")
 # Initialize Anthropic client
 anthropic_client = Anthropic(api_key=mcp_config.ANTHROPIC_API_KEY)
 
+import requests
+from fastapi import Request
+
+@app.post("/blender/command")
+async def blender_command(request: Request):
+    try:
+        data = await request.json()
+        blender_url = "http://127.0.0.1:8081/"
+        resp = requests.post(blender_url, json=data, timeout=5)
+        return resp.json()
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Blender relay error: {e}")
+
 class MCPRequest(BaseModel):
     context: Dict[str, Any]
     query: str
