@@ -25,6 +25,28 @@ class MCPChatEntry(bpy.types.PropertyGroup):
     response: bpy.props.StringProperty(name="Response", maxlen=16384)
 
 class MCPChatProperties(bpy.types.PropertyGroup):
+    relay_sleep: bpy.props.EnumProperty(
+        name="Relay Delay",
+        description="How long to wait between relay commands (rate limiting)",
+        items=[
+            ("0.1", "0.1s (Fast)", "Very fast, may overwhelm Blender"),
+            ("0.5", "0.5s", "Half a second delay"),
+            ("1.0", "1s", "One second delay (recommended)"),
+            ("2.0", "2s", "Two seconds delay"),
+            ("5.0", "5s (Safe)", "Five seconds delay (very safe)")
+        ],
+        default="1.0"
+    )
+    screenshot_mode: bpy.props.EnumProperty(
+        name="Screenshots",
+        description="How many screenshots to capture for feedback",
+        items=[
+            ("1", "1 View", "Single screenshot from the default camera/view"),
+            ("2", "2 Views (180°)", "Two screenshots: default and 180-degree rotation around object"),
+            ("12", "12 Views (Comprehensive)", "6 rotational views (60° apart) and 6 orthographic face-on views")
+        ],
+        default="1"
+    )
     model: bpy.props.EnumProperty(
         name="AI Model",
         description="Choose which AI model to use",
@@ -253,8 +275,12 @@ class MCP_PT_ChatPanel3DView(bpy.types.Panel):
         row = layout.row()
         row.label(text="Poly Count")
         row.prop(props, "poly_count", text="", expand=False)
-
-
+        row = layout.row()
+        row.label(text="Relay Delay")
+        row.prop(props, "relay_sleep", text="", expand=False)
+        row = layout.row()
+        row.label(text="Screenshots")
+        row.prop(props, "screenshot_mode", text="", expand=False)
 
         if props.code_snippet:
             layout.label(text="Suggested Code:")
